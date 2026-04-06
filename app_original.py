@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
 """
-WSTG Vulnerable Web Application - Upgraded UI
-==============================================
+WSTG Vulnerable Web Application
+================================
 A deliberately vulnerable Flask app for testing WSTG penetration testing automation.
 Contains common OWASP vulnerabilities for educational and authorized testing purposes.
-
-UPGRADED: Professional UI with modern templates and styling
 
 WARNING: This application contains intentional vulnerabilities and should ONLY be used
 for authorized security testing and educational purposes.
 """
 
-from flask import Flask, render_template, render_template_string, request, redirect, jsonify
+from flask import Flask, render_template_string, request, redirect, jsonify
 import sqlite3
 import os
 import logging
@@ -145,12 +143,33 @@ def login():
                 return redirect(f'/dashboard/{user[0]}')
             return "Invalid credentials", 401
 
-    return render_template('login.html')
+    return '''
+    <html>
+    <body>
+        <h1>Login</h1>
+        <form method="POST">
+            Username: <input name="username"><br>
+            Password: <input name="password" type="password"><br>
+            <input type="submit">
+        </form>
+        <p>Test: admin/admin123 or user/password123</p>
+    </body>
+    </html>
+    '''
 
 @app.route('/dashboard/<user_id>')
 def dashboard(user_id):
     """IDOR - no authorization checking"""
-    return render_template('dashboard.html', user_id=user_id)
+    return f'''
+    <html>
+    <body>
+        <h1>Dashboard for User {user_id}</h1>
+        <p><a href="/api/profile/{user_id}">View Full Profile (JSON)</a></p>
+        <p><a href="/api/profile/1">Admin Profile</a></p>
+        <p><a href="/api/profile/2">User Profile</a></p>
+    </body>
+    </html>
+    '''
 
 # ============================================================================
 # VULNERABILITY 3: Missing Security Headers
@@ -162,48 +181,11 @@ def xss_test():
 
     # VULNERABLE: Direct rendering of user input
     return f'''
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>XSS Test</title>
-        <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    </head>
+    <html>
     <body>
-        <nav>
-            <div class="container">
-                <h1>🔐 WSTG Security Lab</h1>
-                <div>
-                    <a href="/">Home</a>
-                    <a href="/login">Login</a>
-                    <a href="/admin">Admin</a>
-                    <a href="/api/user/1">API</a>
-                </div>
-            </div>
-        </nav>
-        <main>
-            <div class="container">
-                <h1>Message Echo</h1>
-                <div class="card">
-                    <div class="card-header">
-                        <h3>XSS Vulnerability Test</h3>
-                    </div>
-                    <p>Your message:</p>
-                    <p><strong>{message}</strong></p>
-                    <hr>
-                    <p style="color: var(--text-light); font-size: 0.9rem;">
-                        Try: &lt;script&gt;alert('XSS')&lt;/script&gt;
-                    </p>
-                    <p style="color: var(--text-light); font-size: 0.9rem;">
-                        Or: &lt;img src=x onerror=alert(1)&gt;
-                    </p>
-                </div>
-            </div>
-        </main>
-        <footer>
-            <p>&copy; 2024 WSTG Vulnerable Application - For Authorized Security Testing Only</p>
-        </footer>
+        <h1>Message</h1>
+        <p>{message}</p>
+        <a href="/xss?message=<script>alert('XSS')</script>">Test XSS</a>
     </body>
     </html>
     '''
@@ -214,7 +196,22 @@ def xss_test():
 @app.route('/backup')
 def backup_files():
     """Exposed backup files"""
-    return render_template('backup.html')
+    files = [
+        'config.bak',
+        'database.sql.bak',
+        'app.config.backup',
+        '.env.backup'
+    ]
+    return f'''
+    <html>
+    <body>
+        <h1>Backup Files</h1>
+        <ul>
+            {''.join([f"<li><a href='/files/{f}'>{f}</a></li>" for f in files])}
+        </ul>
+    </body>
+    </html>
+    '''
 
 @app.route('/files/<filename>')
 def get_file(filename):
@@ -253,10 +250,26 @@ def resource_endpoint(resource_id):
 @app.route('/admin')
 def admin_panel():
     """Exposed admin panel with debug info"""
-    python_version = os.popen("python3 --version 2>&1").read().strip()
-    return render_template('admin.html',
-                         db_path=DB_PATH,
-                         python_version=python_version)
+    return f'''
+    <html>
+    <body>
+        <h1>Admin Panel (No Authentication Required!)</h1>
+        <p>Flask Debug: {app.config.get("DEBUG")}</p>
+        <p>Database Path: {DB_PATH}</p>
+        <p>Python Version: {os.popen("python3 --version").read()}</p>
+        <p>Server Software: Flask 2.0.1 (Vulnerable Version)</p>
+        <hr>
+        <h2>Quick Links</h2>
+        <ul>
+            <li><a href="/api/user/1">Get User 1</a></li>
+            <li><a href="/api/user/1 OR 1=1">SQL Injection Test</a></li>
+            <li><a href="/search?username=admin&apos; OR &apos;1&apos;=&apos;1">Search with SQL Injection</a></li>
+            <li><a href="/api/profile/1">User Profile (IDOR)</a></li>
+            <li><a href="/backup">Backup Files</a></li>
+        </ul>
+    </body>
+    </html>
+    '''
 
 # ============================================================================
 # VULNERABILITY 7: robots.txt & sitemap exposure
@@ -277,7 +290,7 @@ Disallow: /.git
 # /api/v1/users
 # /config
 # /database.sql
-''', 200, {'Content-Type': 'text/plain'}
+'''
 
 @app.route('/sitemap.xml')
 def sitemap():
@@ -292,7 +305,7 @@ def sitemap():
     <url><loc>http://localhost/api/profile/1</loc></url>
     <url><loc>http://localhost/search</loc></url>
 </urlset>
-''', 200, {'Content-Type': 'application/xml'}
+'''
 
 # ============================================================================
 # VULNERABILITY 8: .git directory exposure
@@ -311,7 +324,7 @@ def git_config():
 [branch "main"]
 	remote = origin
 	merge = refs/heads/main
-''', 200, {'Content-Type': 'text/plain'}
+'''
 
 # ============================================================================
 # VULNERABILITY 9: Unvalidated Redirects
@@ -328,7 +341,64 @@ def unvalidated_redirect():
 @app.route('/')
 def index():
     """Home page with links to vulnerable endpoints"""
-    return render_template('index.html')
+    return '''
+    <html>
+    <head>
+        <title>WSTG Vulnerable Application</title>
+        <style>
+            body { font-family: Arial; margin: 20px; }
+            .vulnerability { border: 1px solid red; padding: 10px; margin: 10px 0; }
+            a { color: blue; }
+        </style>
+    </head>
+    <body>
+        <h1>🔓 WSTG Vulnerable Web Application</h1>
+        <p>This application contains intentional vulnerabilities for testing WSTG automation.</p>
+
+        <div class="vulnerability">
+            <h3>SQL Injection</h3>
+            <ul>
+                <li><a href="/api/user/1">/api/user/1</a> - SQL Injection in user lookup</li>
+                <li><a href="/search?username=admin">/search</a> - SQL Injection in search</li>
+            </ul>
+        </div>
+
+        <div class="vulnerability">
+            <h3>Weak Authentication & IDOR</h3>
+            <ul>
+                <li><a href="/login">/login</a> - Weak auth (admin/admin123)</li>
+                <li><a href="/api/profile/1">/api/profile/1</a> - IDOR vulnerability</li>
+            </ul>
+        </div>
+
+        <div class="vulnerability">
+            <h3>XSS & Input Validation</h3>
+            <ul>
+                <li><a href="/xss?message=Hello">/xss</a> - Reflected XSS</li>
+            </ul>
+        </div>
+
+        <div class="vulnerability">
+            <h3>Information Disclosure</h3>
+            <ul>
+                <li><a href="/admin">/admin</a> - Exposed admin panel</li>
+                <li><a href="/backup">/backup</a> - Exposed backup files</li>
+                <li><a href="/robots.txt">/robots.txt</a> - Exposed robots.txt</li>
+                <li><a href="/sitemap.xml">/sitemap.xml</a> - Exposed sitemap</li>
+                <li><a href="/.git/config">/. git/config</a> - Exposed .git directory</li>
+            </ul>
+        </div>
+
+        <div class="vulnerability">
+            <h3>Other Vulnerabilities</h3>
+            <ul>
+                <li><a href="/resource/123">/resource/123</a> - Unrestricted HTTP methods</li>
+                <li><a href="/redirect?url=http://example.com">/redirect</a> - Unvalidated redirect</li>
+            </ul>
+        </div>
+    </body>
+    </html>
+    '''
 
 @app.route('/health')
 def health():

@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Backup Files - WSTG Security Lab{% endblock %}
+
+{% block content %}
+<h1>📦 Backup Files</h1>
+<p style="color: var(--text-light); margin-bottom: 2rem;">Exposed backup files available for download</p>
+
+<div class="alert alert-danger">
+    <strong>🚨 Information Disclosure:</strong> Backup files containing credentials, API keys, and configuration are publicly accessible.
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3>Available Backups</h3>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Filename</th>
+                <th>Size</th>
+                <th>Contents</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>config.bak</code></td>
+                <td>120 B</td>
+                <td>Database credentials, API keys</td>
+                <td><a href="/files/config.bak" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Download</a></td>
+            </tr>
+            <tr>
+                <td><code>database.sql.bak</code></td>
+                <td>85 B</td>
+                <td>SQL dump with user data</td>
+                <td><a href="/files/database.sql.bak" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Download</a></td>
+            </tr>
+            <tr>
+                <td><code>app.config.backup</code></td>
+                <td>110 B</td>
+                <td>Application secrets and debug settings</td>
+                <td><a href="/files/app.config.backup" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Download</a></td>
+            </tr>
+            <tr>
+                <td><code>.env.backup</code></td>
+                <td>95 B</td>
+                <td>Environment variables with secrets</td>
+                <td><a href="/files/.env.backup" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Download</a></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="grid grid-2" style="margin-top: 2rem;">
+    <div class="card">
+        <div class="card-header">
+            <h3>config.bak</h3>
+        </div>
+        <p><strong>Contains:</strong> Database URL, API key</p>
+        <details>
+            <summary style="cursor: pointer; color: var(--primary);">View Content</summary>
+            <pre style="margin-top: 1rem;"><code>DATABASE_URL=mysql://admin:password123@localhost/db
+API_KEY=sk_test_1234567890abcdef</code></pre>
+        </details>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3>app.config.backup</h3>
+        </div>
+        <p><strong>Contains:</strong> Secret key, admin email, debug flag</p>
+        <details>
+            <summary style="cursor: pointer; color: var(--primary);">View Content</summary>
+            <pre style="margin-top: 1rem;"><code>DEBUG=True
+SECRET_KEY=super_secret_key_123
+ADMIN_EMAIL=admin@example.com</code></pre>
+        </details>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3>database.sql.bak</h3>
+        </div>
+        <p><strong>Contains:</strong> User records with credentials</p>
+        <details>
+            <summary style="cursor: pointer; color: var(--primary);">View Content</summary>
+            <pre style="margin-top: 1rem;"><code>INSERT INTO users VALUES (1, "admin", "admin123");</code></pre>
+        </details>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3>.env.backup</h3>
+        </div>
+        <p><strong>Contains:</strong> API keys, database password, admin token</p>
+        <details>
+            <summary style="cursor: pointer; color: var(--primary);">View Content</summary>
+            <pre style="margin-top: 1rem;"><code>API_KEY=supersecretkey
+DB_PASSWORD=password123
+ADMIN_TOKEN=token123</code></pre>
+        </details>
+    </div>
+</div>
+
+<div class="card" style="margin-top: 2rem;">
+    <div class="card-header">
+        <h3>Impact Analysis</h3>
+    </div>
+    <ul>
+        <li><strong>Credential Exposure:</strong> Database admin credentials (admin:password123)</li>
+        <li><strong>API Key Leak:</strong> Test API keys visible in plaintext</li>
+        <li><strong>Configuration Disclosure:</strong> Secret keys and debug settings exposed</li>
+        <li><strong>Data Dump:</strong> User credentials and database structure revealed</li>
+        <li><strong>Environment Variables:</strong> All sensitive environment variables exposed</li>
+    </ul>
+</div>
+{% endblock %}

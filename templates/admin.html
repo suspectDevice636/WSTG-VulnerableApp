@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Panel - WSTG Security Lab{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h1>🔑 Admin Panel</h1>
+    <span class="badge badge-danger">No Authentication!</span>
+</div>
+
+<div class="alert alert-danger">
+    <strong>🚨 Critical Vulnerability:</strong> This admin panel is <strong>publicly accessible without authentication</strong>. Contains exposed system information and debug details.
+</div>
+
+<div class="grid grid-2">
+    <div class="stat-card">
+        <div class="stat-label">Server Status</div>
+        <div class="stat-value" style="color: var(--success);">✓</div>
+        <p style="font-size: 0.9rem;">Online & Running</p>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Total Users</div>
+        <div class="stat-value">3</div>
+        <p style="font-size: 0.9rem;">Active Accounts</p>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Database</div>
+        <div class="stat-value" style="color: var(--primary);">SQLite</div>
+        <p style="font-size: 0.9rem; word-break: break-all;">{{ db_path }}</p>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Debug Mode</div>
+        <div class="stat-value" style="color: var(--danger);">ON</div>
+        <p style="font-size: 0.9rem;">Debugging Enabled</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3>System Information</h3>
+    </div>
+    <table>
+        <tbody>
+            <tr>
+                <td><strong>Python Version</strong></td>
+                <td><code>{{ python_version }}</code></td>
+            </tr>
+            <tr>
+                <td><strong>Flask Version</strong></td>
+                <td><code>2.0.1 (Vulnerable)</code></td>
+            </tr>
+            <tr>
+                <td><strong>Database Location</strong></td>
+                <td><code>{{ db_path }}</code></td>
+            </tr>
+            <tr>
+                <td><strong>Debug Enabled</strong></td>
+                <td><code style="color: var(--danger);">True</code></td>
+            </tr>
+            <tr>
+                <td><strong>Server Software</strong></td>
+                <td><code>Flask 2.0.1</code></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3>User Management</h3>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>1</td>
+                <td><code>admin</code></td>
+                <td>admin@example.com</td>
+                <td><span class="badge badge-danger">admin</span></td>
+                <td><a href="/api/profile/1">View</a></td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td><code>user</code></td>
+                <td>user@example.com</td>
+                <td><span class="badge" style="background: #dbeafe; color: #1e40af;">user</span></td>
+                <td><a href="/api/profile/2">View</a></td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td><code>guest</code></td>
+                <td>guest@example.com</td>
+                <td><span class="badge" style="background: #e5e7eb; color: #4b5563;">guest</span></td>
+                <td><a href="/api/profile/3">View</a></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3>Quick Vulnerability Tests</h3>
+    </div>
+    <ul>
+        <li><a href="/api/user/1">Test SQL Injection: /api/user/1</a></li>
+        <li><a href="/api/user/1 OR 1=1">Test SQL Injection: /api/user/1 OR 1=1</a></li>
+        <li><a href="/search?username=admin' OR '1'='1">Test Search Injection</a></li>
+        <li><a href="/api/profile/1">Test IDOR: /api/profile/1</a></li>
+        <li><a href="/backup">View Backup Files</a></li>
+        <li><a href="/robots.txt">View robots.txt</a></li>
+        <li><a href="/.git/config">View .git/config</a></li>
+    </ul>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3>Security Warnings</h3>
+    </div>
+    <div class="alert alert-danger" style="margin-bottom: 1rem;">
+        <strong>❌ No Authentication:</strong> This panel is publicly accessible without any login requirement.
+    </div>
+    <div class="alert alert-danger" style="margin-bottom: 1rem;">
+        <strong>❌ Exposed Credentials:</strong> Database location and sensitive paths are visible.
+    </div>
+    <div class="alert alert-danger" style="margin-bottom: 1rem;">
+        <strong>❌ Debug Information:</strong> Full system information disclosed to unauthorized users.
+    </div>
+    <div class="alert alert-danger" style="margin-bottom: 0;">
+        <strong>❌ Vulnerable Dependencies:</strong> Flask version 2.0.1 contains known vulnerabilities.
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - WSTG Security Lab{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h1>User Dashboard</h1>
+    <p style="color: var(--text-light);">User ID: <strong style="color: var(--primary);">{{ user_id }}</strong></p>
+</div>
+
+<div class="alert alert-info">
+    <strong>ℹ️ IDOR Vulnerability:</strong> This dashboard has no authorization checking. Try accessing different user IDs (1, 2, 3) in the URL.
+</div>
+
+<div class="grid grid-2">
+    <div class="card">
+        <div class="card-header">
+            <h3>User Information</h3>
+        </div>
+        <p>
+            <strong>User ID:</strong> {{ user_id }}<br>
+            <strong>Status:</strong> <span class="badge" style="background: #dcfce7; color: #166534;">Active</span>
+        </p>
+        <p style="margin-top: 1rem;">
+            <a href="/api/profile/{{ user_id }}" class="btn btn-primary">View Full Profile (JSON)</a>
+        </p>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3>Quick Actions</h3>
+        </div>
+        <ul>
+            <li><a href="/api/profile/1">View Admin Profile</a></li>
+            <li><a href="/api/profile/2">View User Profile</a></li>
+            <li><a href="/api/profile/3">View Guest Profile</a></li>
+            <li><a href="/api/user/1">Get User via API</a></li>
+        </ul>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3>Profile Information</h3>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Field</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>User ID</td>
+                <td><code>{{ user_id }}</code></td>
+            </tr>
+            <tr>
+                <td>Last Login</td>
+                <td>Just now</td>
+            </tr>
+            <tr>
+                <td>Account Status</td>
+                <td><span class="badge badge-success">Active</span></td>
+            </tr>
+            <tr>
+                <td>Session Token</td>
+                <td><code>not_implemented</code></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3>Vulnerability Test Links</h3>
+    </div>
+    <p>Use these endpoints to test the identified vulnerabilities:</p>
+    <ul>
+        <li><a href="/api/user/1">/api/user/1</a> - SQL Injection vulnerability</li>
+        <li><a href="/api/user/1 OR 1=1">/api/user/1 OR 1=1</a> - Boolean-based SQL injection</li>
+        <li><a href="/api/profile/1">/api/profile/1</a> - IDOR to access any user's full profile</li>
+        <li><a href="/xss?message=<script>alert('XSS')</script>">/xss</a> - Reflected XSS vulnerability</li>
+    </ul>
+</div>
+{% endblock %}

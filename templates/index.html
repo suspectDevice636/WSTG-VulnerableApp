@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}Home - WSTG Security Lab{% endblock %}
+
+{% block content %}
+<div style="text-align: center; margin: 3rem 0;">
+    <h1>🔓 Security Testing Laboratory</h1>
+    <p style="font-size: 1.1rem; color: var(--text-light);">
+        Authorized penetration testing environment with intentional vulnerabilities for WSTG validation
+    </p>
+</div>
+
+<div class="card" style="background: #fef2f2; border-left: 5px solid var(--danger);">
+    <h3 style="color: var(--danger);">⚠️ WARNING</h3>
+    <p>This application contains <strong>intentional security vulnerabilities</strong> designed for:</p>
+    <ul>
+        <li>Authorized security testing</li>
+        <li>Educational purposes</li>
+        <li>Validating penetration testing tools</li>
+        <li>CI/CD pipeline security testing</li>
+    </ul>
+    <p><strong>DO NOT deploy to production or public networks.</strong></p>
+</div>
+
+<h2 style="margin-top: 3rem;">Vulnerability Categories</h2>
+
+<div class="grid grid-2">
+    <!-- SQL Injection -->
+    <div class="card">
+        <div class="card-header">
+            <h3>SQL Injection</h3>
+            <span class="badge badge-danger">Critical</span>
+        </div>
+        <p>Direct SQL injection vulnerabilities in user lookup and search functionality.</p>
+        <ul>
+            <li><a href="/api/user/1">GET /api/user/1</a> - Direct parameter injection</li>
+            <li><a href="/search?username=admin">GET /search</a> - Search injection</li>
+            <li><a href="/api/user/1 OR 1=1">Test: 1 OR 1=1</a></li>
+            <li><a href="/search?username=admin' OR '1'='1">Test: Boolean-based</a></li>
+        </ul>
+    </div>
+
+    <!-- Authentication -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Authentication & IDOR</h3>
+            <span class="badge badge-danger">Critical</span>
+        </div>
+        <p>Weak authentication and Insecure Direct Object Reference vulnerabilities.</p>
+        <ul>
+            <li><a href="/login">POST /login</a> - Weak validation (admin/admin123)</li>
+            <li><a href="/api/profile/1">GET /api/profile/1</a> - IDOR vulnerability</li>
+            <li><a href="/api/profile/2">GET /api/profile/2</a> - Access other profiles</li>
+            <li><a href="/dashboard/1">GET /dashboard/1</a> - Unauthorized access</li>
+        </ul>
+    </div>
+
+    <!-- XSS -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Cross-Site Scripting (XSS)</h3>
+            <span class="badge badge-danger">High</span>
+        </div>
+        <p>Reflected XSS vulnerabilities with no input validation.</p>
+        <ul>
+            <li><a href="/xss?message=Hello">GET /xss?message=Hello</a> - Parameter reflection</li>
+            <li><a href="/xss?message=<script>alert('XSS')</script>">Test: Script injection</a></li>
+            <li><a href="/xss?message=<img src=x onerror=alert(1)>">Test: Image tag</a></li>
+        </ul>
+    </div>
+
+    <!-- Information Disclosure -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Information Disclosure</h3>
+            <span class="badge badge-danger">High</span>
+        </div>
+        <p>Exposed sensitive files, configs, and debug information.</p>
+        <ul>
+            <li><a href="/admin">GET /admin</a> - Unprotected admin panel</li>
+            <li><a href="/backup">GET /backup</a> - Exposed backup files</li>
+            <li><a href="/robots.txt">GET /robots.txt</a> - Sensitive path disclosure</li>
+            <li><a href="/sitemap.xml">GET /sitemap.xml</a> - Site enumeration</li>
+            <li><a href="/.git/config">GET /.git/config</a> - Git directory exposure</li>
+        </ul>
+    </div>
+
+    <!-- HTTP Methods -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Unrestricted HTTP Methods</h3>
+            <span class="badge" style="background: #fef3c7; color: #92400e;">Medium</span>
+        </div>
+        <p>Resource endpoints accepting all HTTP methods without validation.</p>
+        <ul>
+            <li><a href="/resource/123">GET /resource/123</a> - Basic GET</li>
+            <li>PUT /resource/123 - Update resource</li>
+            <li>DELETE /resource/123 - Delete resource</li>
+            <li>PATCH /resource/123 - Patch resource</li>
+        </ul>
+    </div>
+
+    <!-- Open Redirect -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Unvalidated Redirects</h3>
+            <span class="badge" style="background: #fef3c7; color: #92400e;">Medium</span>
+        </div>
+        <p>Unvalidated redirect parameters leading to external sites.</p>
+        <ul>
+            <li><a href="/redirect?url=http://example.com">GET /redirect</a> - Redirect to external site</li>
+            <li><a href="/redirect?url=https://malicious.com">Test: Phishing</a></li>
+        </ul>
+    </div>
+</div>
+
+<div class="card" style="margin-top: 2rem;">
+    <h3>Quick Start Guide</h3>
+    <ol>
+        <li><strong>Login:</strong> <a href="/login">Visit the login page</a> with test credentials (admin/admin123)</li>
+        <li><strong>Explore Vulnerabilities:</strong> Click on any of the vulnerability categories above</li>
+        <li><strong>Test with Tools:</strong> Use your penetration testing tools against these endpoints</li>
+        <li><strong>Admin Panel:</strong> <a href="/admin">Access the admin panel</a> to view system information</li>
+        <li><strong>API Testing:</strong> Interact with API endpoints for programmatic testing</li>
+    </ol>
+</div>
+
+<div class="card" style="background: #eff6ff; border-left: 5px solid var(--primary);">
+    <h3 style="color: var(--primary);">Test Credentials</h3>
+    <table>
+        <tbody>
+            <tr>
+                <td><strong>Admin</strong></td>
+                <td>Username: <code>admin</code></td>
+                <td>Password: <code>admin123</code></td>
+            </tr>
+            <tr>
+                <td><strong>User</strong></td>
+                <td>Username: <code>user</code></td>
+                <td>Password: <code>password123</code></td>
+            </tr>
+            <tr>
+                <td><strong>Guest</strong></td>
+                <td>Username: <code>guest</code></td>
+                <td>Password: <code>guest</code></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+{% endblock %}
