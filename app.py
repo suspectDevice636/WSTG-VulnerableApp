@@ -24,6 +24,27 @@ app.config['DEBUG'] = True  # Intentionally enabled for testing
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+# ============================================================================
+# VULNERABILITY: CORS Misconfiguration & Insecure CSP
+# ============================================================================
+@app.after_request
+def add_vulnerable_headers(response):
+    """Add intentionally vulnerable security headers for testing"""
+
+    # VULNERABLE CORS: Allow any origin to access API endpoints
+    # In production, this would allow any domain to make requests
+    origin = request.headers.get('Origin', '*')
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS, PATCH'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With'
+    response.headers['Access-Control-Allow-Credentials'] = 'true'  # VULNERABLE with wildcard origin
+
+    # VULNERABLE CSP: Overly permissive Content Security Policy
+    # This CSP is weak and allows unsafe-inline scripts which defeats XSS protection
+    response.headers['Content-Security-Policy'] = "default-src 'self' * data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' *; style-src 'self' 'unsafe-inline' *; img-src *; font-src *;"
+
+    return response
+
 # Database path
 DB_PATH = '/tmp/wstg_vulnerable.db'
 
@@ -207,6 +228,28 @@ def xss_test():
     </body>
     </html>
     '''
+
+# ============================================================================
+# VULNERABILITY 3.5: CORS Exploitation - Sensitive API Endpoint
+# ============================================================================
+@app.route('/api/sensitive-data', methods=['GET', 'POST', 'OPTIONS'])
+def sensitive_data_cors():
+    """
+    CORS Vulnerable Endpoint - Returns sensitive data accessible from any origin
+    Due to the after_request handler, this endpoint returns data with overly permissive CORS headers
+    """
+    if request.method == 'OPTIONS':
+        # Handle preflight request
+        return '', 200
+
+    return jsonify({
+        'api_key': 'sk_live_abcd1234efgh5678ijkl9012',
+        'database_connection': 'postgresql://admin:SecurePass123@db.internal:5432/production',
+        'auth_token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2V4YW1wbGUuYXV0aDAuY29tLyIsInN1YiI6ImF1dGgwfDEyMzQ1Njc4OTAiLCJhdWQiOiJodHRwczovL2FwaS5leGFtcGxlLmNvbSIsImlhdCI6MTYzNDc2MTI2NCwiZXhwIjoxNjM0Nzk3MjY0fQ.Ij8Xn2T7_-Lz8nqKj9oQ1ZL0lR0qL9zL8nqKj9oQ1ZL',
+        'user_ids': [1, 2, 3, 4, 5],
+        'internal_ips': ['10.0.0.1', '10.0.0.2', '10.0.0.3'],
+        'message': 'This endpoint is vulnerable to CORS attacks - accessible from any origin due to Access-Control-Allow-Origin: *'
+    })
 
 # ============================================================================
 # VULNERABILITY 4: Directory Listing & Sensitive Files
