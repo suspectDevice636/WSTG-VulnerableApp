@@ -135,6 +135,30 @@ python app.py
 - **Vulnerability:** Flask debug mode enabled in production (app.config['DEBUG'] = True)
 - **Impact:** Information disclosure, potential code execution
 
+### 11. **CORS Misconfiguration** 🔴 CRITICAL
+- **Vulnerability:** Overly permissive CORS headers on all endpoints
+  - `Access-Control-Allow-Origin: *` (wildcard)
+  - `Access-Control-Allow-Credentials: true` (dangerous with wildcard)
+  - `Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS, PATCH`
+- **Endpoint:** `/api/sensitive-data` (returns API keys, DB credentials, tokens)
+- **Detection:** CORS check in WSTG script, browser console errors
+- **Attack Scenario:** Attacker's website can make cross-origin requests and steal data
+- **Impact:** Data exfiltration, credential theft
+
+### 12. **Insecure Content Security Policy (CSP)** 🔴 CRITICAL
+- **Vulnerability:** Weak CSP applied globally:
+  ```
+  default-src 'self' * data:;
+  script-src 'self' 'unsafe-inline' 'unsafe-eval' *;
+  style-src 'self' 'unsafe-inline' *;
+  ```
+- **Issues:**
+  - `'unsafe-inline'` allows inline scripts (XSS vector)
+  - `'unsafe-eval'` allows eval() calls
+  - `*` allows resources from anywhere
+- **Detection:** CSP header analysis, reflected XSS payloads
+- **Impact:** Combined with XSS, allows attackers to execute arbitrary JavaScript
+
 ---
 
 ## 🔍 Testing with WSTG Automation Script
@@ -160,6 +184,9 @@ cat SCAN-SUMMARY.txt
 The WSTG script should detect:
 - ✅ Open port 5000 (HTTP)
 - ✅ Missing security headers
+- ✅ Insecure CSP (unsafe-inline, unsafe-eval, wildcard sources)
+- ✅ CORS misconfiguration (Access-Control-Allow-Origin: *)
+- ✅ Sensitive data exposure (via CORS endpoint)
 - ✅ Directory listing/exposure
 - ✅ robots.txt and sitemap.xml
 - ✅ Exposed `.git` directory
@@ -260,6 +287,28 @@ for pass in admin password 123 test; do
 done
 ```
 
+### CORS Vulnerability
+```bash
+# Check CORS headers
+curl -I -H "Origin: http://attacker.com" http://localhost:5000/api/sensitive-data
+
+# Access sensitive data from any origin
+curl http://localhost:5000/api/sensitive-data | jq
+
+# Simulate cross-origin request (in browser)
+# Open browser console and run:
+# fetch('http://localhost:5000/api/sensitive-data').then(r => r.json()).then(d => console.log(d))
+```
+
+### CSP Bypass with Unsafe-Inline
+```bash
+# XSS payload that works due to unsafe-inline
+curl "http://localhost:5000/?message=<script>alert('CSP-Bypass')</script>"
+
+# eval() execution due to unsafe-eval
+curl "http://localhost:5000/?js=alert('eval-works')"
+```
+
 ---
 
 ## 📊 Vulnerability Severity Map
@@ -267,15 +316,17 @@ done
 | Vulnerability | CVSS | OWASP Top 10 | Detection |
 |--------------|------|--------------|-----------|
 | SQL Injection | 9.8 | A1 | Nikto, SQLMap, manual |
+| CORS Misconfig | 9.1 | A5 | CORS check, WSTG script |
+| Insecure CSP | 8.7 | A5 | CSP check, header analysis |
 | IDOR | 7.5 | A1 | Manual, directory fuzzing |
-| Weak Auth | 7.3 | A7 | Manual, brute force tools |
-| XSS | 6.1 | A7 | XSStrike, manual |
 | Info Disclosure | 7.5 | A1 | robots.txt, directory listing |
-| Missing Headers | 5.3 | A5 | Header analysis |
 | Exposed Creds | 7.5 | A2 | Manual inspection |
+| Weak Auth | 7.3 | A7 | Manual, brute force tools |
+| Missing Headers | 5.3 | A5 | Header analysis |
+| Debug Mode | 5.3 | A5 | Server fingerprinting |
+| XSS | 6.1 | A7 | XSStrike, manual |
 | HTTP Methods | 4.3 | A1 | curl, Burp |
 | Redirects | 4.3 | A5 | Manual testing |
-| Debug Mode | 5.3 | A5 | Server fingerprinting |
 
 ---
 
