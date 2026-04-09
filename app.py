@@ -243,9 +243,9 @@ def sensitive_data_cors():
         return '', 200
 
     return jsonify({
-        'api_key': 'sk_live_abcd1234efgh5678ijkl9012',
-        'database_connection': 'postgresql://admin:SecurePass123@db.internal:5432/production',
-        'auth_token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2V4YW1wbGUuYXV0aDAuY29tLyIsInN1YiI6ImF1dGgwfDEyMzQ1Njc4OTAiLCJhdWQiOiJodHRwczovL2FwaS5leGFtcGxlLmNvbSIsImlhdCI6MTYzNDc2MTI2NCwiZXhwIjoxNjM0Nzk3MjY0fQ.Ij8Xn2T7_-Lz8nqKj9oQ1ZL0lR0qL9zL8nqKj9oQ1ZL',
+        'api_key': '[REDACTED - API Key would be exposed here]',
+        'database_connection': '[REDACTED - Database credentials would be exposed here]',
+        'auth_token': '[REDACTED - Authentication token would be exposed here]',
         'user_ids': [1, 2, 3, 4, 5],
         'internal_ips': ['10.0.0.1', '10.0.0.2', '10.0.0.3'],
         'message': 'This endpoint is vulnerable to CORS attacks - accessible from any origin due to Access-Control-Allow-Origin: *'
@@ -263,10 +263,10 @@ def backup_files():
 def get_file(filename):
     """Serves backup files without restriction"""
     backup_content = {
-        'config.bak': 'DATABASE_URL=mysql://admin:password123@localhost/db\nAPI_KEY=sk_test_1234567890abcdef',
-        'database.sql.bak': 'INSERT INTO users VALUES (1, "admin", "admin123");',
-        'app.config.backup': 'DEBUG=True\nSECRET_KEY=super_secret_key_123\nADMIN_EMAIL=admin@example.com',
-        '.env.backup': 'API_KEY=supersecretkey\nDB_PASSWORD=password123\nADMIN_TOKEN=token123'
+        'config.bak': 'DATABASE_URL=[REDACTED]\nAPI_KEY=[REDACTED]',
+        'database.sql.bak': 'INSERT INTO users VALUES (1, "admin", "[REDACTED]");',
+        'app.config.backup': 'DEBUG=True\nSECRET_KEY=[REDACTED]\nADMIN_EMAIL=admin@example.com',
+        '.env.backup': 'API_KEY=[REDACTED]\nDB_PASSWORD=[REDACTED]\nADMIN_TOKEN=[REDACTED]'
     }
 
     if filename in backup_content:
