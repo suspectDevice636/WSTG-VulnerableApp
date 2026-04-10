@@ -26,8 +26,9 @@ from werkzeug.utils import secure_filename
 import os
 import base64
 from functools import wraps
-from datetime import datetime
+from datetime import datetime, timedelta
 import sqlite3
+import jwt
 
 app = Flask(__name__)
 
@@ -44,6 +45,12 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Allowed file extensions (intentionally too permissive)
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx', 'exe', 'sh'}
+
+# ===== JWT CONFIGURATION (VULNERABLE) =====
+# VULNERABLE: Weak JWT secret (easy to brute force)
+JWT_SECRET = 'jwt_secret_123'
+# VULNERABLE: Long token expiration (default 7 days, some tokens never expire)
+JWT_EXPIRATION_HOURS = 24 * 7  # 7 days
 
 db = SQLAlchemy(app)
 
@@ -107,6 +114,71 @@ def admin_required(f):
         user = User.query.get(session['user_id'])
         if not user or not user.is_admin:
             return jsonify({'error': 'Admin access required'}), 403
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+# ===== JWT FUNCTIONS (VULNERABLE) =====
+def generate_jwt_token(user_id, username, is_admin=False, no_expiry=False):
+    """Generate JWT token (VULNERABLE - weak secret, long expiration)"""
+    payload = {
+        'user_id': user_id,
+        'username': username,
+        'is_admin': is_admin,
+        'iat': datetime.utcnow()
+    }
+
+    # VULNERABLE: No expiration if no_expiry is True
+    if not no_expiry:
+        payload['exp'] = datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS)
+
+    # VULNERABLE: Weak secret key
+    token = jwt.encode(payload, JWT_SECRET, algorithm='HS256')
+    return token
+
+
+def verify_jwt_token(token):
+    """Verify JWT token (VULNERABLE - doesn't validate all claims)"""
+    try:
+        # VULNERABLE: Uses weak secret, no signature verification options
+        payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+        return payload
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+
+
+def jwt_required(f):
+    """Decorator to require valid JWT token"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        token = None
+
+        # Check Authorization header
+        if 'Authorization' in request.headers:
+            auth_header = request.headers['Authorization']
+            try:
+                token = auth_header.split(' ')[1]
+            except IndexError:
+                return jsonify({'error': 'Invalid token format'}), 401
+
+        # VULNERABLE: Also check for token in query parameter (bad practice)
+        elif 'token' in request.args:
+            token = request.args.get('token')
+
+        if not token:
+            return jsonify({'error': 'Token required'}), 401
+
+        payload = verify_jwt_token(token)
+        if not payload:
+            return jsonify({'error': 'Invalid or expired token'}), 401
+
+        # Store in request for later use
+        request.user_id = payload['user_id']
+        request.username = payload['username']
+        request.is_admin = payload.get('is_admin', False)
+
         return f(*args, **kwargs)
     return decorated_function
 
@@ -205,6 +277,76 @@ def logout():
     """Logout"""
     session.clear()
     return redirect(url_for('login'))
+
+
+# ===== JWT ENDPOINTS (VULNERABLE) =====
+@app.route('/api/auth/token', methods=['POST'])
+def get_jwt_token():
+    """Generate JWT token from username/password (VULNERABLE)"""
+    data = request.get_json()
+
+    if not data or not data.get('username') or not data.get('password'):
+        return jsonify({'error': 'Username and password required'}), 400
+
+    user = User.query.filter_by(username=data['username']).first()
+
+    if not user or not check_password_hash(user.password, data['password']):
+        # VULNERABLE: Information disclosure - tells if user exists
+        return jsonify({'error': 'Invalid credentials'}), 401
+
+    # VULNERABLE: Token never expires if no_expiry parameter is passed
+    no_expiry = request.args.get('no_expiry', 'false').lower() == 'true'
+
+    token = generate_jwt_token(user.id, user.username, user.is_admin, no_expiry)
+
+    return jsonify({
+        'token': token,
+        'user_id': user.id,
+        'username': user.username,
+        'is_admin': user.is_admin,
+        # VULNERABLE: Exposes secret in response (for testing purposes)
+        'secret_hint': 'jwt_secret_*'
+    })
+
+
+@app.route('/api/auth/refresh', methods=['POST'])
+def refresh_jwt_token():
+    """Refresh JWT token (VULNERABLE - no validation)"""
+    token = request.headers.get('Authorization', '').split(' ')[-1]
+
+    if not token:
+        return jsonify({'error': 'Token required'}), 401
+
+    # VULNERABLE: No proper validation, just decodes and re-encodes
+    payload = verify_jwt_token(token)
+
+    if not payload:
+        return jsonify({'error': 'Invalid token'}), 401
+
+    # VULNERABLE: Issues new token without checking anything
+    new_token = generate_jwt_token(payload['user_id'], payload['username'], payload.get('is_admin'))
+
+    return jsonify({'token': new_token})
+
+
+@app.route('/api/auth/verify', methods=['GET'])
+def verify_token():
+    """Verify and decode token (VULNERABLE - exposes claims)"""
+    token = request.args.get('token') or request.headers.get('Authorization', '').split(' ')[-1]
+
+    if not token:
+        return jsonify({'error': 'Token required'}), 401
+
+    payload = verify_jwt_token(token)
+
+    if not payload:
+        return jsonify({'error': 'Invalid token'}), 401
+
+    # VULNERABLE: Returns full payload including claims
+    return jsonify({
+        'valid': True,
+        'payload': payload
+    })
 
 
 @app.route('/dashboard')
@@ -348,6 +490,111 @@ def search_notes():
     except Exception as e:
         # VULNERABLE: Information disclosure - reveals database error
         return jsonify({'error': str(e)}), 500
+
+
+# ===== JWT API ENDPOINTS (VULNERABLE) =====
+@app.route('/api/v2/notes', methods=['GET'])
+@jwt_required
+def get_notes_jwt():
+    """Get notes using JWT auth (VULNERABLE to IDOR)"""
+    user_id = request.args.get('user_id', request.user_id)
+
+    # VULNERABLE: IDOR - can access any user's notes
+    notes = Note.query.filter_by(user_id=user_id).all()
+
+    return jsonify({
+        'notes': [
+            {
+                'id': note.id,
+                'title': note.title,
+                'content': note.content,
+                'user_id': note.user_id,
+                'created_at': note.created_at.isoformat()
+            } for note in notes
+        ]
+    })
+
+
+@app.route('/api/v2/notes/<int:note_id>', methods=['GET'])
+@jwt_required
+def get_note_jwt(note_id):
+    """Get specific note using JWT auth (VULNERABLE to IDOR)"""
+    note = Note.query.get(note_id)
+
+    if not note:
+        return jsonify({'error': 'Note not found'}), 404
+
+    # VULNERABLE: No ownership check
+    return jsonify({
+        'id': note.id,
+        'title': note.title,
+        'content': note.content,
+        'user_id': note.user_id,
+        'created_at': note.created_at.isoformat()
+    })
+
+
+@app.route('/api/v2/notes', methods=['POST'])
+@jwt_required
+def create_note_jwt():
+    """Create note using JWT auth"""
+    data = request.get_json()
+
+    if not data or not data.get('title') or not data.get('content'):
+        return jsonify({'error': 'Title and content required'}), 400
+
+    new_note = Note(
+        title=data['title'],
+        content=data['content'],
+        user_id=request.user_id,
+        is_private=data.get('is_private', True)
+    )
+
+    db.session.add(new_note)
+    db.session.commit()
+
+    return jsonify({
+        'id': new_note.id,
+        'message': 'Note created'
+    }), 201
+
+
+@app.route('/api/v2/notes/<int:note_id>', methods=['PUT'])
+@jwt_required
+def update_note_jwt(note_id):
+    """Update note using JWT auth (VULNERABLE to IDOR)"""
+    note = Note.query.get(note_id)
+
+    if not note:
+        return jsonify({'error': 'Note not found'}), 404
+
+    # VULNERABLE: No ownership check
+    data = request.get_json()
+
+    if 'title' in data:
+        note.title = data['title']
+    if 'content' in data:
+        note.content = data['content']
+
+    db.session.commit()
+
+    return jsonify({'message': 'Updated'})
+
+
+@app.route('/api/v2/notes/<int:note_id>', methods=['DELETE'])
+@jwt_required
+def delete_note_jwt(note_id):
+    """Delete note using JWT auth (VULNERABLE to IDOR)"""
+    note = Note.query.get(note_id)
+
+    if not note:
+        return jsonify({'error': 'Note not found'}), 404
+
+    # VULNERABLE: No ownership check
+    db.session.delete(note)
+    db.session.commit()
+
+    return jsonify({'message': 'Deleted'})
 
 
 @app.route('/api/users', methods=['GET'])
