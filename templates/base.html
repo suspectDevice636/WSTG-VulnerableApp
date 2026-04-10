@@ -3,33 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}WSTG Vulnerable App{% endblock %}</title>
+    <title>{% block title %}SecureNotes{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <nav>
+    <nav class="navbar">
         <div class="container">
-            <h1>🔐 WSTG Security Lab</h1>
-            <div>
-                <a href="/">Home</a>
-                <a href="/login">Login</a>
-                <a href="/admin">Admin</a>
-                <a href="/api/user/1">API</a>
+            <div class="navbar-brand">
+                <a href="/">SecureNotes</a>
+                <span class="tagline">Your secure note-taking platform</span>
+            </div>
+            <div class="navbar-menu">
+                {% if session.user_id %}
+                    <div class="nav-links">
+                        <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                        <a href="{{ url_for('upload_file') }}">Upload</a>
+                        {% if session.is_admin %}
+                            <a href="{{ url_for('admin_panel') }}" class="admin-link">Admin</a>
+                        {% endif %}
+                        <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+                    </div>
+                    <div class="user-info">
+                        Welcome, <strong>{{ session.username }}</strong>
+                    </div>
+                {% else %}
+                    <div class="nav-links">
+                        <a href="{{ url_for('login') }}">Login</a>
+                        <a href="{{ url_for('register') }}">Register</a>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </nav>
 
-    <main>
-        <div class="container">
-            {% block content %}{% endblock %}
-        </div>
+    <main class="main-content">
+        {% block content %}{% endblock %}
     </main>
 
-    <footer>
-        <p>&copy; 2024 WSTG Vulnerable Application - For Authorized Security Testing Only</p>
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 SecureNotes. All rights reserved.</p>
+            <p class="footer-text">Enterprise-grade security for your notes</p>
+        </div>
     </footer>
 
-    {% block extra_js %}{% endblock %}
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>

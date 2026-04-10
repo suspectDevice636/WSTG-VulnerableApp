@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  securenotes-v2:
+    build:
+      context: .
+      dockerfile: Dockerfile-v2
+    container_name: securenotes-v2
+    ports:
+      - "5001:5000"
+    environment:
+      FLASK_ENV: development
+      FLASK_DEBUG: 1
+    volumes:
+      - ./uploads:/app/uploads
+      - ./notes.db:/app/notes.db
+    restart: unless-stopped
+    networks:
+      - securenotes-network
+
+networks:
+  securenotes-network:
+    driver: bridge

@@ -1,0 +1,22 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application files
+COPY app-v2.py .
+COPY templates/ ./templates/
+COPY static/ ./static/
+COPY cert.pem key.pem ./
+
+# Create upload directory
+RUN mkdir -p uploads
+
+# Expose port 5000
+EXPOSE 5000
+
+# Run the application with SSL
+CMD ["python3", "-c", "from app_v2 import app, init_db; import ssl; init_db(); context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER); context.load_cert_chain('cert.pem', 'key.pem'); app.run(debug=True, host='0.0.0.0', port=5000, ssl_context=context)"]

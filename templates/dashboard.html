@@ -1,86 +1,132 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - WSTG Security Lab{% endblock %}
+{% block title %}Dashboard - SecureNotes{% endblock %}
 
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-    <h1>User Dashboard</h1>
-    <p style="color: var(--text-light);">User ID: <strong style="color: var(--primary);">{{ user_id }}</strong></p>
-</div>
+<div class="container">
+    <div class="dashboard-header">
+        <h1>Your Notes</h1>
+        <button class="btn btn-primary" onclick="showCreateNoteModal()">+ New Note</button>
+    </div>
 
-<div class="alert alert-info">
-    <strong>ℹ️ IDOR Vulnerability:</strong> This dashboard has no authorization checking. Try accessing different user IDs (1, 2, 3) in the URL.
-</div>
-
-<div class="grid grid-2">
-    <div class="card">
-        <div class="card-header">
-            <h3>User Information</h3>
+    <div class="dashboard-content">
+        <div class="notes-grid">
+            {% if notes %}
+                {% for note in notes %}
+                    <div class="note-card">
+                        <h3>{{ note.title }}</h3>
+                        <p class="note-preview">{{ note.content[:100] }}...</p>
+                        <div class="note-meta">
+                            <small>By {{ note.author.username }}</small>
+                            <small>{{ note.created_at.strftime('%Y-%m-%d') }}</small>
+                        </div>
+                        <div class="note-actions">
+                            <button class="btn btn-small" onclick="viewNote({{ note.id }})">View</button>
+                            <button class="btn btn-small btn-danger" onclick="deleteNote({{ note.id }})">Delete</button>
+                        </div>
+                        <!-- VULNERABLE: IDOR - exposed note ID allows direct access -->
+                        <span class="note-id" style="display:none;">{{ note.id }}</span>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <p>No notes yet. Create your first note!</p>
+                </div>
+            {% endif %}
         </div>
-        <p>
-            <strong>User ID:</strong> {{ user_id }}<br>
-            <strong>Status:</strong> <span class="badge" style="background: #dcfce7; color: #166534;">Active</span>
-        </p>
-        <p style="margin-top: 1rem;">
-            <a href="/api/profile/{{ user_id }}" class="btn btn-primary">View Full Profile (JSON)</a>
-        </p>
     </div>
+</div>
 
-    <div class="card">
-        <div class="card-header">
-            <h3>Quick Actions</h3>
+<!-- Create Note Modal -->
+<div id="createNoteModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <h2>Create New Note</h2>
+        <form id="createNoteForm">
+            <div class="form-group">
+                <label for="noteTitle">Title</label>
+                <input type="text" id="noteTitle" name="title" required>
+            </div>
+            <div class="form-group">
+                <label for="noteContent">Content</label>
+                <textarea id="noteContent" name="content" rows="8" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="notePrivate">
+                    <input type="checkbox" id="notePrivate" name="is_private" checked>
+                    Private Note
+                </label>
+            </div>
+            <button type="submit" class="btn btn-primary">Create Note</button>
+        </form>
+    </div>
+</div>
+
+<!-- View Note Modal -->
+<div id="viewNoteModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span class="close" onclick="closeViewModal()">&times;</span>
+        <div id="noteContent"></div>
+        <div class="modal-actions">
+            <button class="btn btn-primary" onclick="editNote()">Edit</button>
+            <button class="btn btn-danger" onclick="deleteCurrentNote()">Delete</button>
         </div>
-        <ul>
-            <li><a href="/api/profile/1">View Admin Profile</a></li>
-            <li><a href="/api/profile/2">View User Profile</a></li>
-            <li><a href="/api/profile/3">View Guest Profile</a></li>
-            <li><a href="/api/user/1">Get User via API</a></li>
-        </ul>
     </div>
 </div>
 
-<div class="card">
-    <div class="card-header">
-        <h3>Profile Information</h3>
-    </div>
-    <table>
-        <thead>
-            <tr>
-                <th>Field</th>
-                <th>Value</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>User ID</td>
-                <td><code>{{ user_id }}</code></td>
-            </tr>
-            <tr>
-                <td>Last Login</td>
-                <td>Just now</td>
-            </tr>
-            <tr>
-                <td>Account Status</td>
-                <td><span class="badge badge-success">Active</span></td>
-            </tr>
-            <tr>
-                <td>Session Token</td>
-                <td><code>not_implemented</code></td>
-            </tr>
-        </tbody>
-    </table>
-</div>
+<script>
+function showCreateNoteModal() {
+    document.getElementById('createNoteModal').style.display = 'block';
+}
 
-<div class="card">
-    <div class="card-header">
-        <h3>Vulnerability Test Links</h3>
-    </div>
-    <p>Use these endpoints to test the identified vulnerabilities:</p>
-    <ul>
-        <li><a href="/api/user/1">/api/user/1</a> - SQL Injection vulnerability</li>
-        <li><a href="/api/user/1 OR 1=1">/api/user/1 OR 1=1</a> - Boolean-based SQL injection</li>
-        <li><a href="/api/profile/1">/api/profile/1</a> - IDOR to access any user's full profile</li>
-        <li><a href="/xss?message=<script>alert('XSS')</script>">/xss</a> - Reflected XSS vulnerability</li>
-    </ul>
-</div>
+function closeModal() {
+    document.getElementById('createNoteModal').style.display = 'none';
+}
+
+function closeViewModal() {
+    document.getElementById('viewNoteModal').style.display = 'none';
+}
+
+function viewNote(noteId) {
+    // VULNERABLE: IDOR - directly fetching any note by ID without ownership check
+    fetch(`/api/notes/${noteId}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('noteContent').innerHTML = `
+                <h2>${data.title}</h2>
+                <p>${data.content}</p>
+                <small>By ${data.author}</small>
+            `;
+            document.getElementById('viewNoteModal').style.display = 'block';
+        });
+}
+
+function deleteNote(noteId) {
+    if (confirm('Delete this note?')) {
+        // VULNERABLE: IDOR - can delete any note
+        fetch(`/api/notes/${noteId}`, {method: 'DELETE'})
+            .then(() => location.reload());
+    }
+}
+
+document.getElementById('createNoteForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = {
+        title: document.getElementById('noteTitle').value,
+        content: document.getElementById('noteContent').value,
+        is_private: document.getElementById('notePrivate').checked
+    };
+    
+    // VULNERABLE: No CSRF token
+    fetch('/api/notes', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(formData)
+    })
+    .then(() => {
+        closeModal();
+        location.reload();
+    });
+});
+</script>
 {% endblock %}

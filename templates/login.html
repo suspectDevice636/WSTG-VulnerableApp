@@ -1,48 +1,53 @@
 {% extends "base.html" %}
 
-{% block title %}Login - WSTG Security Lab{% endblock %}
+{% block title %}Login - SecureNotes{% endblock %}
 
 {% block content %}
-<div style="max-width: 400px; margin: 4rem auto;">
-    <div class="card">
-        <div class="card-header" style="border-bottom: 2px solid var(--primary);">
-            <h2 style="text-align: center; margin-bottom: 0;">Sign In</h2>
-        </div>
+<div class="container">
+    <div class="auth-container">
+        <div class="auth-box">
+            <h1>Login to SecureNotes</h1>
+            <p class="auth-subtitle">Access your secure notes from anywhere</p>
 
-        <form method="POST" style="margin-top: 1.5rem;">
-            <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" placeholder="Enter your username" required>
+            {% if error %}
+                <div class="alert alert-error">{{ error }}</div>
+            {% endif %}
+
+            <form method="POST" class="auth-form">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" placeholder="Enter your username" required autofocus>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+            </form>
+
+            <div class="auth-footer">
+                <p>Don't have an account? <a href="{{ url_for('register') }}">Create one</a></p>
             </div>
 
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" placeholder="Enter your password" required>
-            </div>
-
-            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
-                Sign In
-            </button>
-        </form>
-
-        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border); text-align: center;">
-            <p style="font-size: 0.9rem; margin-bottom: 1rem;">
-                <strong>Test Credentials:</strong>
-            </p>
-            <p style="margin-bottom: 0.5rem;">
-                <code>admin</code> / <code>admin123</code>
-            </p>
-            <p style="margin-bottom: 0.5rem;">
-                <code>user</code> / <code>password123</code>
-            </p>
-            <p>
-                <code>guest</code> / <code>guest</code>
-            </p>
+            <!-- VULNERABLE: Hardcoded credentials in HTML comment for developer -->
+            <!-- Test credentials:
+                 Username: admin
+                 Password: AdminPass123!
+                 Also try: user1 / password123
+            -->
         </div>
-    </div>
 
-    <div class="alert alert-warning" style="margin-top: 1.5rem;">
-        <strong>⚠️ Note:</strong> This login form has <strong>intentional vulnerabilities</strong> for security testing purposes. No rate limiting, weak validation, and plain-text passwords.
+        <div class="demo-info">
+            <h3>Demo Credentials</h3>
+            <p>For testing purposes, you can use:</p>
+            <ul>
+                <li><strong>admin</strong> - AdminPass123! (Admin user)</li>
+                <li><strong>user1</strong> - password123</li>
+                <li><strong>user2</strong> - password456</li>
+            </ul>
+        </div>
     </div>
 </div>
 {% endblock %}
