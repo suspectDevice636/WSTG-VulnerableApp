@@ -219,28 +219,6 @@ body {
     font-weight: 500;
 }
 
-/* Demo Info */
-.demo-info {
-    background: #eff6ff;
-    padding: 1.5rem;
-    border-radius: 8px;
-    border-left: 4px solid var(--primary-color);
-}
-
-.demo-info h3 {
-    margin-bottom: 0.5rem;
-}
-
-.demo-info ul {
-    list-style: none;
-    padding-left: 0;
-}
-
-.demo-info li {
-    padding: 0.5rem 0;
-    font-size: 0.9rem;
-}
-
 /* Alerts */
 .alert {
     padding: 1rem;
