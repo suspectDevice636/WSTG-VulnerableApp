@@ -14,6 +14,31 @@ This application contains **intentional security vulnerabilities** and is design
 
 ---
 
+## 📚 Versions
+
+This project includes **two versions** of the vulnerable application:
+
+### V1 - Original Lab Application
+- Basic vulnerable web app (shows vulnerabilities openly)
+- Good for learning security concepts
+- **Run:** `python app.py` or `docker-compose up`
+- **Port:** 5000
+- **Documentation:** This README.md
+
+### V2 - Enhanced Realistic Application
+- **Looks like a real web app** (professional UI, note-taking platform)
+- **Hidden vulnerabilities** (not obvious)
+- Multiple pre-created users for testing (IDOR, privilege escalation)
+- 15+ vulnerabilities across different categories
+- HTTPS with self-signed certificates
+- **Run:** `./run-v2.sh` or `docker-compose -f docker-compose-v2.yml up`
+- **Port:** 5001 (Docker) or 5000 (direct)
+- **Documentation:** [README-V2.md](README-V2.md)
+
+**Choose V1 for learning, V2 for realistic testing.**
+
+---
+
 ## 🚀 Quick Start
 
 ### Prerequisites
