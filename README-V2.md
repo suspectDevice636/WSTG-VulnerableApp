@@ -45,7 +45,7 @@ Access the application at: `https://localhost:5001`
 | user3 | password789 | Regular User |
 | john | JohnPassword | Regular User |
 
-## 🔴 Vulnerabilities in V2
+## 🔴 Vulnerabilities in V2 (16 Total)
 
 ### 1. **Hardcoded Credentials** 
 - **Location**: HTML comments in `/login` page
@@ -192,7 +192,37 @@ curl "https://localhost:5000/api/search?q=' OR '1'='1"
 - **WSTG Phase**: 4.7 (SSL/TLS Testing)
 - **Severity**: MEDIUM
 
-### 15. **Sensitive Data Exposure**
+### 15. **JWT Vulnerabilities** (NEW!)
+- **Endpoints**: `/api/auth/token`, `/api/auth/refresh`, `/api/auth/verify`, `/api/v2/notes/*`
+- **Vulnerabilities**:
+  - Weak secret key: `jwt_secret_123` (easily brute-forceable)
+  - Long expiration: 7 days (can be extended to lifetime with `no_expiry=true`)
+  - No token revocation/blacklist (tokens can't be invalidated)
+  - Token passed via query parameter (should be header only)
+  - No signature algorithm validation
+  - Debug endpoint exposes token payload and secret hints
+  - Refresh endpoint doesn't validate claims
+- **Detection**: Decode JWT with `jwt.io`, brute-force secret, test `no_expiry` parameter
+- **WSTG Phase**: 5.5 (Token Security Testing)
+- **Severity**: CRITICAL
+- **Test**:
+```bash
+# Get token
+curl -X POST https://localhost:5000/api/auth/token \
+  -H "Content-Type: application/json" \
+  -d '{"username":"user1","password":"password123"}'
+
+# Use token to access notes (IDOR still works)
+curl -X GET "https://localhost:5000/api/v2/notes?user_id=2" \
+  -H "Authorization: Bearer <token>"
+
+# Get non-expiring token
+curl -X POST "https://localhost:5000/api/auth/token?no_expiry=true" \
+  -H "Content-Type: application/json" \
+  -d '{"username":"user1","password":"password123"}'
+```
+
+### 16. **Sensitive Data Exposure**
 - **Endpoint**: `GET /api/sensitive-data`
 - **Vulnerability**: API keys, credentials, tokens exposed via CORS
 - **Detection**: Cross-origin request reveals sensitive data
@@ -258,6 +288,9 @@ After testing V2, you should understand:
 - File upload security flaws
 - Information disclosure risks
 - SSL/TLS certificate issues
+- JWT token vulnerabilities and attacks
+- Weak secret key brute-forcing
+- Token expiration bypass techniques
 
 ## 🚀 Next Steps
 
