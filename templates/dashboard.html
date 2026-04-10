@@ -66,39 +66,103 @@
 <div id="viewNoteModal" class="modal" style="display:none;">
     <div class="modal-content">
         <span class="close" onclick="closeViewModal()">&times;</span>
-        <div id="noteContent"></div>
-        <div class="modal-actions">
-            <button class="btn btn-primary" onclick="editNote()">Edit</button>
-            <button class="btn btn-danger" onclick="deleteCurrentNote()">Delete</button>
+
+        <!-- View Mode -->
+        <div id="viewMode">
+            <div id="noteContent"></div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="editNote()">Edit</button>
+                <button class="btn btn-danger" onclick="deleteCurrentNote()">Delete</button>
+            </div>
+        </div>
+
+        <!-- Edit Mode -->
+        <div id="editMode" style="display:none;">
+            <h2>Edit Note</h2>
+            <form id="editNoteForm">
+                <div class="form-group">
+                    <label for="editNoteTitle">Title</label>
+                    <input type="text" id="editNoteTitle" name="title" required>
+                </div>
+                <div class="form-group">
+                    <label for="editNoteContent">Content</label>
+                    <textarea id="editNoteContent" name="content" rows="8" required></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <button type="button" class="btn btn-danger" onclick="cancelEdit()">Cancel</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
 <script>
+let currentNoteId = null;
+let currentNoteData = null;
+
 function showCreateNoteModal() {
     document.getElementById('createNoteModal').style.display = 'block';
 }
 
 function closeModal() {
     document.getElementById('createNoteModal').style.display = 'none';
+    // Clear form
+    document.getElementById('createNoteForm').reset();
 }
 
 function closeViewModal() {
     document.getElementById('viewNoteModal').style.display = 'none';
+    // Reset to view mode
+    document.getElementById('viewMode').style.display = 'block';
+    document.getElementById('editMode').style.display = 'none';
+    currentNoteId = null;
+    currentNoteData = null;
 }
 
 function viewNote(noteId) {
     // VULNERABLE: IDOR - directly fetching any note by ID without ownership check
+    currentNoteId = noteId;
     fetch(`/api/notes/${noteId}`)
         .then(response => response.json())
         .then(data => {
+            currentNoteData = data;
             document.getElementById('noteContent').innerHTML = `
                 <h2>${data.title}</h2>
                 <p>${data.content}</p>
                 <small>By ${data.author}</small>
             `;
+            // Reset to view mode
+            document.getElementById('viewMode').style.display = 'block';
+            document.getElementById('editMode').style.display = 'none';
             document.getElementById('viewNoteModal').style.display = 'block';
         });
+}
+
+function editNote() {
+    if (!currentNoteData) return;
+
+    // Populate edit form with current note data
+    document.getElementById('editNoteTitle').value = currentNoteData.title;
+    document.getElementById('editNoteContent').value = currentNoteData.content;
+
+    // Switch to edit mode
+    document.getElementById('viewMode').style.display = 'none';
+    document.getElementById('editMode').style.display = 'block';
+}
+
+function cancelEdit() {
+    // Switch back to view mode
+    document.getElementById('viewMode').style.display = 'block';
+    document.getElementById('editMode').style.display = 'none';
+}
+
+function deleteCurrentNote() {
+    if (confirm('Delete this note?')) {
+        // VULNERABLE: IDOR - can delete any note
+        fetch(`/api/notes/${currentNoteId}`, {method: 'DELETE'})
+            .then(() => location.reload());
+    }
 }
 
 function deleteNote(noteId) {
@@ -116,7 +180,7 @@ document.getElementById('createNoteForm').addEventListener('submit', function(e)
         content: document.getElementById('noteContent').value,
         is_private: document.getElementById('notePrivate').checked
     };
-    
+
     // VULNERABLE: No CSRF token
     fetch('/api/notes', {
         method: 'POST',
@@ -125,6 +189,25 @@ document.getElementById('createNoteForm').addEventListener('submit', function(e)
     })
     .then(() => {
         closeModal();
+        location.reload();
+    });
+});
+
+document.getElementById('editNoteForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = {
+        title: document.getElementById('editNoteTitle').value,
+        content: document.getElementById('editNoteContent').value
+    };
+
+    // VULNERABLE: No CSRF token
+    fetch(`/api/notes/${currentNoteId}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(formData)
+    })
+    .then(() => {
+        closeViewModal();
         location.reload();
     });
 });

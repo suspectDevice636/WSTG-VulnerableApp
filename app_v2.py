@@ -355,11 +355,10 @@ def dashboard():
     """Dashboard (main page after login)"""
     user = User.query.get(session['user_id'])
 
-    # VULNERABLE: IDOR - can access other users' notes by modifying user_id
-    # Get all notes visible to this user (including ones they shouldn't see)
-    all_notes = Note.query.all()
+    # Get only notes owned by the current user
+    user_notes = Note.query.filter_by(user_id=session['user_id']).all()
 
-    return render_template('dashboard.html', user=user, notes=all_notes)
+    return render_template('dashboard.html', user=user, notes=user_notes)
 
 
 @app.route('/api/notes', methods=['GET'])

@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile-v2
     container_name: securenotes-v2
     ports:
-      - "5001:5000"
+      - "7008:5000"
     environment:
       FLASK_ENV: development
       FLASK_DEBUG: 1
