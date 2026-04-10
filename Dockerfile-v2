@@ -7,7 +7,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application files
-COPY app-v2.py .
+COPY app_v2.py .
 COPY templates/ ./templates/
 COPY static/ ./static/
 COPY cert.pem key.pem ./
